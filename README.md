@@ -1,84 +1,75 @@
 # YapHub
 
-YapHub is a lightweight Discord bot that creates temporary voice channels when users join a lobby channel, then cleans those channels up automatically when they are empty.
+YapHub is a focused Discord bot for VoiceMaster-style temporary voice channels. It creates temporary rooms from one or more Join to Yap lobbies, tracks them in SQLite, and cleans them up when they are empty.
 
-## MVP Scope
+## Current MVP Scope
 
-- Create a `➕ Join to Yap` lobby channel with `/yap setup`
-- Auto-create a temporary voice channel when a user joins the lobby
-- Move the user into their new yap room
-- Track temporary channel ownership in memory
-- Delete empty temporary yap rooms automatically
-- Support basic owner controls:
-  - `/yap lock`
-  - `/yap unlock`
-  - `/yap limit`
-  - `/yap rename`
-  - `/yap claim`
+- `/yap setup` creates the default Join to Yap profile
+- `/yap config` shows the stored guild configuration
+- `/yap reset` clears configured profiles for a guild
+- `/yap profile create` adds additional category-scoped Join to Yap sections
+- `/yap profile list` lists configured profiles
+- `/yap profile delete` removes a profile
+- Temporary rooms are persisted in SQLite
+- One active owned temp room is enforced per user per guild
+- Restart reconciliation removes stale records and deletes empty orphan temp rooms
 
-## How Server Owners Add YapHub
+## Product Direction
 
-YapHub must be running from one hosted bot account before other people can add it to their servers. Server owners do not run their own copy unless they are self-hosting.
+YapHub is intentionally narrow:
 
-### 1. Create the Invite Link
+- Focused temporary voice channel bot
+- VoiceMaster-style replacement target
+- Multi-server capable
+- Category-scoped
+- Persistence-backed
 
-In the Discord Developer Portal:
+YapHub is not trying to be a general-purpose mega-bot.
 
-1. Open the YapHub application.
-2. Go to **OAuth2 → URL Generator**.
-3. Select scopes:
-   - `bot`
-   - `applications.commands`
-4. Select bot permissions:
-   - Manage Channels
-   - Move Members
-   - View Channels
-   - Connect
-   - Speak
-5. Copy the generated URL.
+## How It Works
 
-### 2. Add YapHub to a Server
-
-The server owner/admin opens the invite URL, picks their server, and approves the requested permissions.
-
-They need permission to add bots to that server.
-
-### 3. Configure the Voice Lobby
-
-Inside Discord, run:
+Example setup:
 
 ```text
-/yap setup
+GENERAL VOICE
+  Join to Yap
+
+LOWER DIVISION
+  Lower Div Join to Yap
+
+HIGHER DIVISION
+  Higher Div Join to Yap
 ```
 
-YapHub creates:
+Flow:
 
 ```text
-➕ Join to Yap
+User joins a configured lobby
+-> YapHub resolves the matching profile
+-> YapHub creates a temp VC in the configured category
+-> YapHub stores the active room in SQLite
+-> YapHub moves the user into that temp VC
+-> YapHub deletes the temp VC when it becomes empty
 ```
 
-When someone joins that lobby, YapHub creates a temporary voice channel and moves them into it.
+If a user already owns an active room in the same guild, YapHub does not create a second one. It attempts to DM them first, then falls back to a short-lived channel notice if DM delivery fails.
 
-### 4. Current MVP Behavior
+## Discord Permissions
 
-```text
-User joins ➕ Join to Yap
-→ YapHub creates 🗣️ User's Yap
-→ YapHub moves the user into the temp channel
-→ YapHub deletes the temp channel when empty
-```
+Recommended bot permissions:
+
+- Manage Channels
+- Move Members
+- View Channels
+- Connect
+- Speak
 
 ## Local Setup
 
 1. Create a Discord application and bot in the Discord Developer Portal.
-2. Enable the required bot permissions:
-   - Manage Channels
-   - Move Members
-   - View Channels
-   - Connect
-   - Speak
+2. Enable the required bot permissions.
 3. Copy `.env.example` to `.env`.
-4. Add your bot token.
+4. Set `DISCORD_TOKEN`.
 5. Install dependencies:
 
 ```bash
@@ -91,12 +82,72 @@ pip install -r requirements.txt
 python bot.py
 ```
 
+7. In Discord, run:
+
+```text
+/yap setup
+```
+
+8. Add additional sections with:
+
+```text
+/yap profile create
+```
+
 ## Environment Variables
 
 ```env
 DISCORD_TOKEN=your_discord_bot_token_here
+YAPHUB_DATA_DIR=./data
+# Optional explicit override:
+# YAPHUB_DB_PATH=./data/yaphub.sqlite3
 ```
 
-## Notes
+`YAPHUB_DB_PATH` wins if both are set.
 
-This MVP stores setup and temp-channel state in memory. Restarting the bot clears runtime state. Persistence can be added later with SQLite or Postgres once the core flow is stable.
+## Railway Volume Setup
+
+For this MVP, Railway should mount a persistent volume and the bot should write SQLite into that mounted path.
+
+Recommended setup:
+
+1. Add a Railway Volume to the service.
+2. Mount it at a stable path such as `/data`.
+3. Set:
+
+```env
+YAPHUB_DATA_DIR=/data
+```
+
+or:
+
+```env
+YAPHUB_DB_PATH=/data/yaphub.sqlite3
+```
+
+4. Deploy the bot worker.
+
+Result:
+
+- SQLite survives restarts and deploys
+- Guild config persists
+- Profile config persists
+- Active temp-channel tracking survives restart reconciliation
+
+## Testing Checklist
+
+- Bot starts without schema errors
+- Slash commands sync successfully
+- `/yap setup` creates a default lobby
+- `/yap profile create` creates an additional section in a category
+- Joining a lobby creates a temp VC in the correct category
+- Leaving the last member in a temp VC deletes it
+- Restarting the bot preserves occupied rooms and cleans empty orphan rooms
+- A user with an existing occupied room is blocked from creating a second room
+
+## Known Constraints
+
+- SQLite is the only persistence target in this phase
+- Voice-state events cannot send true ephemeral notices
+- Fallback duplicate-room notices depend on channel messaging availability and permissions
+- Owner control commands from the earlier in-memory MVP are not part of this canonical Issue #8 pass

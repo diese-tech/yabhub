@@ -10,6 +10,8 @@ env/
 
 # Environment
 .env
+data/
+*.sqlite3
 
 # VS Code
 .vscode/
