@@ -16,6 +16,58 @@ YapHub is a lightweight Discord bot that creates temporary voice channels when u
   - `/yap rename`
   - `/yap claim`
 
+## How Server Owners Add YapHub
+
+YapHub must be running from one hosted bot account before other people can add it to their servers. Server owners do not run their own copy unless they are self-hosting.
+
+### 1. Create the Invite Link
+
+In the Discord Developer Portal:
+
+1. Open the YapHub application.
+2. Go to **OAuth2 → URL Generator**.
+3. Select scopes:
+   - `bot`
+   - `applications.commands`
+4. Select bot permissions:
+   - Manage Channels
+   - Move Members
+   - View Channels
+   - Connect
+   - Speak
+5. Copy the generated URL.
+
+### 2. Add YapHub to a Server
+
+The server owner/admin opens the invite URL, picks their server, and approves the requested permissions.
+
+They need permission to add bots to that server.
+
+### 3. Configure the Voice Lobby
+
+Inside Discord, run:
+
+```text
+/yap setup
+```
+
+YapHub creates:
+
+```text
+➕ Join to Yap
+```
+
+When someone joins that lobby, YapHub creates a temporary voice channel and moves them into it.
+
+### 4. Current MVP Behavior
+
+```text
+User joins ➕ Join to Yap
+→ YapHub creates 🗣️ User's Yap
+→ YapHub moves the user into the temp channel
+→ YapHub deletes the temp channel when empty
+```
+
 ## Local Setup
 
 1. Create a Discord application and bot in the Discord Developer Portal.
