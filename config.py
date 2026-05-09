@@ -1,0 +1,2 @@
+TEMP_CHANNEL_PREFIX = "🗣️"
+JOIN_TO_CREATE_NAME = "➕ Join to Yap"
