@@ -75,6 +75,13 @@ Recommended bot permissions:
 - View Channels
 - Connect
 - Speak
+- Send Messages
+- Read Message History
+
+OAuth scopes:
+
+- `bot`
+- `applications.commands`
 
 ## Local Setup
 
