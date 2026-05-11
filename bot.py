@@ -58,8 +58,9 @@ class YapHubBot(commands.Bot):
             for profile in self.storage.list_all_profiles()
         }
         self.active_temp_channel_ids = {
-            int(row["channel_id"]) for row in self.storage.list_active_temp_channels()
-        }
+            int(row["channel_id"]): row["channel_id"]
+            for row in self.storage.list_active_temp_channels()
+        }.keys()
 
     async def reconcile_active_temp_channels(self) -> None:
         tracked_ids: set[int] = set()
@@ -218,11 +219,15 @@ class YapHubBot(commands.Bot):
 
             guild_config = self.storage.get_guild_config(member.guild.id)
             prefix = DEFAULT_TEMP_CHANNEL_PREFIX
-            if guild_config and guild_config["temp_channel_prefix"]:
-                prefix = str(guild_config["temp_channel_prefix"])
+            if guild_config and guild_config["temp_channel_prefix"] is not None:
+                prefix = str(guild_config["temp_channel_prefix"]).strip()
+
+            temp_channel_name = f"{member.display_name}'s Yap"
+            if prefix:
+                temp_channel_name = f"{prefix} {temp_channel_name}"
 
             temp_channel = await member.guild.create_voice_channel(
-                name=f"{prefix} {member.display_name}'s Yap",
+                name=temp_channel_name,
                 category=category,
                 reason=f"YapHub temp VC for user {member.id}",
             )
@@ -276,11 +281,8 @@ def require_manage_channels(interaction: discord.Interaction) -> bool:
     )
 
 
-def build_lobby_name(profile_name: str) -> str:
-    normalized = profile_name.strip()
-    if normalized.lower() in {"default", "general"}:
-        return JOIN_TO_CREATE_NAME
-    return f"{normalized} {JOIN_TO_CREATE_NAME}"
+def build_lobby_name(_: str) -> str:
+    return JOIN_TO_CREATE_NAME
 
 
 class ProfileGroup(app_commands.Group):
