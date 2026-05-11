@@ -113,6 +113,12 @@ python bot.py
 /yap profile create
 ```
 
+For category-specific sections, pass a category and optional lobby name:
+
+```text
+/yap profile create name:"Lower Div Yaps" category:#SMITE-LOWER-DIV lobby_name:"Lower Div Join to Yap"
+```
+
 ## Environment Variables
 
 ```env

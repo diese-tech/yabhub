@@ -29,6 +29,7 @@ class ProfileGroup(app_commands.Group):
         name: str,
         category: discord.CategoryChannel | None = None,
         lobby_channel: discord.VoiceChannel | None = None,
+        lobby_name: str | None = None,
     ) -> None:
         if not require_manage_channels(interaction):
             await interaction.response.send_message(
@@ -53,7 +54,7 @@ class ProfileGroup(app_commands.Group):
 
         if lobby_channel is None:
             lobby_channel = await guild.create_voice_channel(
-                build_lobby_name(name),
+                lobby_name.strip() if lobby_name and lobby_name.strip() else build_lobby_name(name),
                 category=target_category,
                 reason=f"YapHub profile setup for {name}",
             )
