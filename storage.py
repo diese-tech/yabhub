@@ -186,6 +186,13 @@ class Storage:
                 ),
             )
 
+    def get_active_temp_channel(self, channel_id: int) -> sqlite3.Row | None:
+        with self._connect() as connection:
+            return connection.execute(
+                "select * from active_temp_channels where channel_id = ?",
+                (str(channel_id),),
+            ).fetchone()
+
     def get_active_temp_channel_by_owner(
         self, guild_id: int, owner_user_id: int
     ) -> sqlite3.Row | None:
@@ -214,6 +221,17 @@ class Storage:
                 """,
                 (str(guild_id),),
             ).fetchall()
+
+    def transfer_active_temp_channel_owner(self, channel_id: int, owner_user_id: int) -> None:
+        with self._connect() as connection:
+            connection.execute(
+                """
+                update active_temp_channels
+                set owner_user_id = ?, last_seen_at = ?
+                where channel_id = ?
+                """,
+                (str(owner_user_id), utc_now_iso(), str(channel_id)),
+            )
 
     def delete_active_temp_channel(self, channel_id: int) -> None:
         with self._connect() as connection:
