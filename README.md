@@ -16,7 +16,7 @@ Never commit the bot token to GitHub.
 
 ## Current MVP Scope
 
-- `/yap setup` creates the default Join to Yap profile
+- `/yap setup` creates a Join to Yap lobby in the selected category
 - `/yap config` shows the stored guild configuration
 - `/yap reset` clears configured profiles for a guild
 - `/yap profile create` adds additional category-scoped Join to Yap sections
@@ -104,16 +104,16 @@ python bot.py
 7. In Discord, run:
 
 ```text
-/yap setup
+/yap setup category:#GENERAL VOICE
 ```
 
-8. Add additional sections with:
+8. Add additional sections by running setup again with another category:
 
 ```text
-/yap profile create
+/yap setup category:#SMITE LOWER DIV
 ```
 
-For category-specific sections, pass a category and optional lobby name:
+For advanced/manual setup, use:
 
 ```text
 /yap profile create name:"Lower Div Yaps" category:#SMITE-LOWER-DIV lobby_name:"Lower Div Join to Yap"

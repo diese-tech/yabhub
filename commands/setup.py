@@ -27,7 +27,7 @@ class YapGroup(app_commands.Group):
         self.bot = bot
         self.add_command(ProfileGroup(bot))
 
-    @app_commands.command(name="setup", description="Create the default Join to Yap profile")
+    @app_commands.command(name="setup", description="Create a Join to Yap lobby in a category")
     async def setup(
         self,
         interaction: discord.Interaction,
@@ -42,33 +42,76 @@ class YapGroup(app_commands.Group):
 
         assert interaction.guild is not None
         profiles = self.bot.storage.list_profiles(interaction.guild.id)
-        if profiles:
+        category_id = category.id if category else None
+
+        for profile in profiles:
+            profile_category_id = (
+                int(profile["target_category_id"]) if profile["target_category_id"] else None
+            )
+            if profile_category_id == category_id:
+                lobby_channel = interaction.guild.get_channel(int(profile["join_channel_id"]))
+                await interaction.response.send_message(
+                    (
+                        "YapHub is already set up for "
+                        f"{category.mention if category else 'top-level voice channels'}.\n"
+                        f"Lobby: {lobby_channel.mention if lobby_channel else profile['join_channel_id']}"
+                    ),
+                    ephemeral=True,
+                )
+                return
+
+        profile_name = category.name if category else "Default"
+        if self.bot.storage.get_profile_by_name(interaction.guild.id, profile_name):
+            profile_name = (
+                f"{profile_name} {len(profiles) + 1}" if category else f"Default {len(profiles) + 1}"
+            )
+
+        try:
+            lobby_channel = await interaction.guild.create_voice_channel(
+                JOIN_TO_CREATE_NAME,
+                category=category,
+                reason="YapHub setup",
+            )
+        except (discord.Forbidden, discord.HTTPException):
+            logger.exception("Failed to create setup lobby in guild %s", interaction.guild.id)
             await interaction.response.send_message(
-                "A Yap setup already exists. Use `/yap profile create` to add another section.",
+                "I could not create the Join to Yap lobby. Check my Manage Channels permission.",
                 ephemeral=True,
             )
             return
 
-        lobby_channel = await interaction.guild.create_voice_channel(
-            JOIN_TO_CREATE_NAME,
-            category=category,
-            reason="YapHub default setup",
-        )
-
         profile = self.bot.storage.create_profile(
             guild_id=interaction.guild.id,
-            name="Default",
+            name=profile_name,
             join_channel_id=lobby_channel.id,
-            target_category_id=category.id if category else None,
+            target_category_id=category_id,
             created_by_user_id=interaction.user.id,
         )
         self.bot.profile_cache[int(profile["join_channel_id"])] = profile
 
         await interaction.response.send_message(
             (
-                f"Created default Join to Yap profile.\n"
+                f"Created YapHub setup for `{profile_name}`.\n"
                 f"Lobby: {lobby_channel.mention}\n"
                 f"Category: {category.name if category else 'Top level'}"
+            ),
+            ephemeral=True,
+        )
+
+    @app_commands.command(name="help", description="Show YapHub commands")
+    async def help(self, interaction: discord.Interaction) -> None:
+        await interaction.response.send_message(
+            (
+                "**Setup**\n"
+                "`/yap setup category:<category>` - Create a Join to Yap lobby in a category.\n"
+                "`/yap config` - Show configured lobbies and active rooms.\n"
+                "`/yap reset confirm:true` - Remove YapHub setup for this server.\n\n"
+                "**Room Controls**\n"
+                "`/yap rename name:<name>` - Rename your current Yap room.\n"
+                "`/yap limit count:<0-99>` - Set a user limit. Use `0` for unlimited.\n"
+                "`/yap transfer user:<member>` - Transfer ownership to someone in the room.\n"
+                "`/yap lock` / `/yap unlock` - Control new joins.\n\n"
+                "`/yap profile create` is available for advanced/manual setups."
             ),
             ephemeral=True,
         )
