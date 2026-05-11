@@ -2,6 +2,18 @@
 
 YapHub is a focused Discord bot for VoiceMaster-style temporary voice channels. It creates temporary rooms from one or more Join to Yap lobbies, tracks them in SQLite, and cleans them up when they are empty.
 
+## Invite YapHub
+
+Use this invite link to add YapHub to a Discord server:
+
+```text
+https://discord.com/oauth2/authorize?client_id=1503456577666154506&permissions=277045382224&integration_type=0&scope=bot+applications.commands
+```
+
+The invite URL only adds the bot to a server. The running bot service still needs `DISCORD_TOKEN` configured in its environment.
+
+Never commit the bot token to GitHub.
+
 ## Current MVP Scope
 
 - `/yap setup` creates the default Join to Yap profile
